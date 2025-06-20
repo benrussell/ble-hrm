@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>HRM</title>
+</head>
+
+
+<style>
+	td {
+		font-family: "Roboto", sans-serif;
+		font-size: 12pt;
+	}
+</style>
+
+
+
+<script>
+
+	function drawVerticalBar(canvasId, ratio, color1, color2) {
+		var canvas = document.getElementById(canvasId);
+		var ctx = canvas.getContext("2d");
+
+		var barWidth = 64;
+		var barHeight = 256;
+
+		ctx.fillStyle = "grey";
+		ctx.fillRect(0, 0, barWidth, barHeight);
+
+		var gradient = ctx.createLinearGradient(0, 0, 0, barHeight);
+		gradient.addColorStop(0, color1);
+		gradient.addColorStop(1, color2);
+
+		var barFillHeight = barHeight * ratio;
+
+		ctx.fillStyle = gradient;
+		ctx.fillRect(0, barHeight - barFillHeight, barWidth, barFillHeight);
+	}
+
+	
+
+	function fillCanvas(canvasId, color) {
+		var canvas = document.getElementById(canvasId);
+		var ctx = canvas.getContext("2d");
+
+		var canvasWidth = canvas.width;
+		var canvasHeight = canvas.height;
+
+		ctx.fillStyle = color;
+		ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+	}
+
+
+
+	function drawHorizontalLine(canvasId, color, width, y_pos) {
+		var canvas = document.getElementById(canvasId);
+		var ctx = canvas.getContext("2d");
+
+		var canvasWidth = canvas.width;
+		var canvasHeight = canvas.height;
+
+		ctx.strokeStyle = color;
+		ctx.lineWidth = width;
+
+		ctx.beginPath();
+		ctx.moveTo(0, y_pos);
+		ctx.lineTo(canvasWidth, y_pos);
+		ctx.stroke();
+	}
+
+
+	function drawLineGraph(canvasId, lineColor, lineWidth, dataPoints) {
+		var canvas = document.getElementById(canvasId);
+		var ctx = canvas.getContext("2d");
+
+		var canvasWidth = canvas.width;
+		var canvasHeight = canvas.height;
+
+		var numDataPoints = dataPoints.length;
+		var dataPointInterval = canvasWidth / (numDataPoints - 1);
+
+		//let lineColor = 'rgba(255, 0, 0, 0.5)'; // Red with 50% opacity
+		//ctx.strokeStyle = lineColor;
+
+		ctx.strokeStyle = lineColor;
+		ctx.lineWidth = lineWidth;
+		ctx.beginPath();
+
+		for (var i = 0; i < numDataPoints; i++) {
+			var x = i * dataPointInterval;
+			var y = canvasHeight - (dataPoints[i] * canvasHeight);
+
+			if (i === 0) {
+				ctx.moveTo(x, y);
+			} else {
+				ctx.lineTo(x, y);
+			}
+		}
+
+		ctx.stroke();
+	}
+
+
+
+	async function listBluetoothDevices() {
+		try {
+			const device = await navigator.bluetooth.requestDevice({
+				acceptAllDevices: true,
+				optionalServices: ['battery_service']  // Example service, adjust as needed
+			});
+			console.log('Selected device:', device);
+		} catch (error) {
+			console.log('Error:', error);
+		}
+	}
+
+	// listBluetoothDevices();
+
+</script>
+
+
+<body>
+
+	<table width="100%" border="1" cellpadding="5" cellspacing="0">
+		<tr>
+			<td valign="top" bgcolor="#ffcccc">
+				<button id="connectBtn_A" onclick="hrm_start_a();">Connect Device A</button>
+				<button id="disconnectBtn_A" onclick="hrm_stop_a();" style="display:none;">Disconnect Device A</button>
+			
+				<div class='hr-row'>
+					<div class='hr-cell'>
+						<div class='hr-header'>Heart Rate A:</div>
+						<div class='hr-value' id='hr_a'>0</div>
+					</div>
+					<div class='hr-cell'>
+						<div class='hr-header'>Average A:</div>
+						<div class='hr-value' id='avg_a'>0.0</div>
+					</div>
+				</div>
+				<div class='hr-cell'>
+					<div class='hr-header'>Zone A:</div>
+					<div class='hr-value' id='zone_a'>0.0</div>
+				</div>
+
+				<div class='hr-cell'>
+					<div class='hr-header'>Last Update A:</div>
+					<div class='hr-value' id='last_update_a'>0.0</div>
+				</div>
+
+				<div class='hr-cell'>
+					<div class='hr-header'>Health Bar A:</div>
+					<div class='hr-value' id='health_bar_a'>0.0</div>
+				</div>
+
+				<div class='hr-cell'>
+					<div class='hr-header'>Device:</div>
+					<div class='hr-value' id='device_a'>0.0</div>
+				</div>
+
+
+			</td>
+
+
+			<td align="middle">
+				
+				<canvas id="canvas1" width="32" height="256"> player 1 health </canvas>
+				
+				<canvas id="canvas3" width="300" height="256"> graphs </canvas>
+				
+				<canvas id="canvas2" width="32" height="256"> player 2 health </canvas>
+
+				<br>
+				<button onclick="reset_stats();">reset</button><br>
+
+
+			</td>
+
+
+			<td valign="top" bgcolor="#ccccff">
+				<button id="connectBtn_B" onclick="hrm_start_b();">Connect Device B</button>
+				<button id="disconnectBtn_B" onclick="hrm_stop_b();" style="display:none;">Disconnect Device B</button>
+
+				<div class='hr-row'>
+					<div class='hr-cell'>
+						<div class='hr-header'>Heart Rate B:</div>
+						<div class='hr-value' id='hr_b'>0</div>
+					</div>
+					<div class='hr-cell'>
+						<div class='hr-header'>Average B:</div>
+						<div class='hr-value' id='avg_b'>0.0</div>
+					</div>
+					<div class='hr-cell'>
+						<div class='hr-header'>Zone B:</div>
+						<div class='hr-value' id='zone_b'>0.0</div>
+					</div>
+				</div>
+
+				<div class='hr-cell'>
+					<div class='hr-header'>Last Update B:</div>
+					<div class='hr-value' id='last_update_b'>0.0</div>
+				</div>
+
+				<div class='hr-cell'>
+					<div class='hr-header'>Health Bar B:</div>
+					<div class='hr-value' id='health_bar_b'>0.0</div>
+				</div>
+
+				<div class='hr-cell'>
+					<div class='hr-header'>Device:</div>
+					<div class='hr-value' id='device_b'>0.0</div>
+				</div>
+
+			</td>
+		</tr>
+	</table>
+
+
+
+	<script>
+
+		var hrm_a;
+		var hrm_b;
+
+		function hrm_start_a() {
+			hrm_a = new HeartRateMonitor("a");
+			let s_ret = hrm_a.start();
+			connectBtn_A.style.display = "none";
+			disconnectBtn_A.style.display = "";
+		}
+
+		function hrm_stop_a() {
+			hrm_a = undefined;			
+			connectBtn_A.style.display = "";
+			disconnectBtn_A.style.display = "none";
+		}
+
+
+		function hrm_start_b() {
+			hrm_b = new HeartRateMonitor("b");
+			hrm_b.start();
+			connectBtn_B.style.display = "none";
+			disconnectBtn_B.style.display = "";
+		}
+
+		function hrm_stop_b() {
+			hrm_b = undefined;			
+			connectBtn_B.style.display = "";
+			disconnectBtn_B.style.display = "none";
+		}
+
+
+
+		function reset_stats(){
+			if( hrm_a ){
+				hrm_a.healthScore = 0.0;
+				hrm_a.timerScore = 0.0;
+				hrm_a.data = [];
+			}
+
+			if( hrm_b ){
+				hrm_b.healthScore = 0.0;
+				hrm_b.timerScore = 0.0;
+				hrm_b.data = [];
+			}
+		}
+
+
+
+		function hrm_update_graph() {
+			// fillCanvas("canvas3", "#050505");
+			fillCanvas("canvas3", "#cccccc");
+
+			const full_health = 150.0;
+
+			let hb_left = 0.95;
+			if( hrm_a ){
+				let fill = 1.0 - (hrm_a.healthScore/full_health);
+				// console.log(fill);
+				hb_left = fill;
+			}
+
+			let hb_right = 0.95;
+			if( hrm_b ){
+				let fill = 1.0 - (hrm_b.healthScore/full_health);
+				hb_right = fill;
+			}
+
+			
+			drawVerticalBar("canvas1", hb_left, "green", "red");
+			drawVerticalBar("canvas2", hb_right, "green", "red");
+
+
+			if (hrm_a) {
+				hrm_a.graph("canvas3", 'rgba(255, 0, 0, 0.85)', 2, 1);
+			}
+
+			if (hrm_b) {
+				hrm_b.graph("canvas3", 'rgba(0, 0, 255, 0.85)', 2, -1);
+			}
+
+
+			for (let i = 0; i < 9; i++) {
+				let ratio = (i + 1) * 0.1;
+				//hrm_a.graph("canvas3", 'rgba(0, 255, 0, 0.85)', 2, ratio);
+
+				let canv_height = 256;
+
+				drawHorizontalLine("canvas3",
+					// "rgba(255, 128, 255, 1.5)", 
+					"rgba(0, 0, 0, 0.25)",
+					1,
+					ratio * canv_height
+				);
+
+			}
+
+
+		}
+
+
+		hrm_update_graph();
+		setInterval(hrm_update_graph, 1000);
+
+
+		// const hr_zones = [
+		// 	0.9, 0.8, 0.7, 0.6
+		// ];
+
+
+
+		class HeartRateMonitor {
+			constructor(device_id) {
+				this.SERVICE_ID = 0x180D;
+				this.CHARACTERISTIC_ID = 0x2A37;
+
+				this.deviceId_ = device_id;
+
+				this.hrElement_ = document.getElementById(`hr_${device_id}`);
+				this.avgElement_ = document.getElementById(`avg_${device_id}`);
+				this.zoneElement_ = document.getElementById(`zone_${device_id}`);
+
+				this.lastUpdateElement_ = document.getElementById(`last_update_${device_id}`);
+				this.healthBarDbgElement_ = document.getElementById(`health_bar_${device_id}`);
+
+				this.healthScore = 0.0;
+				this.timerScore = 0.0;
+
+				this.resetAverage_();
+
+				this.data = [];
+			}
+
+			computeAverage_() {
+				if (this.timeSum_ > 0) {
+					let avg = this.hrSum_ / ((this.timeSum_) * 2);
+					return avg.toFixed(1);
+				}
+				return '0.0';
+			}
+
+			resetAverage_() {
+				this.lastTick_ = 0;
+				this.lastHr_ = 0;
+				this.hrSum_ = 0;
+				this.timeSum_ = 0;
+			}
+
+			parseHeartRate_(data) {
+				let flags = data.getUint8(0);
+				if (flags & 0x1) {
+					return data.getUint16(1, true);
+				}
+				return data.getUint8(1);
+			}
+
+
+			onHeartRateChanged_(event) {
+				//console.log(event);
+				let dataView = event.target.value;
+				let tick = (new Date()).getTime();
+				let hr = this.parseHeartRate_(dataView);
+
+				// Ignore readings where the HR or last HR value is 0 - treat this as a
+				// failed reading from the sensor.
+				if (this.lastTick_ && hr && this.lastHr_) {
+					this.hrSum_ += (tick - this.lastTick_) * (hr + this.lastHr_);
+					this.timeSum_ += tick - this.lastTick_;
+				}
+				this.lastTick_ = tick;
+				this.lastHr_ = hr;
+
+				this.lastUpdateElement_.innerText = Math.floor(Date.now() / 1000);
+
+				this.data.unshift(hr);
+				if (this.data.length > 300) { //max 300 samples, five minutes.
+					this.data.pop();
+				}
+
+				this.hrElement_.textContent = hr;
+				this.avgElement_.textContent = this.computeAverage_();
+			}
+
+			handleCharacteristic_(characteristic) {
+				characteristic.addEventListener('characteristicvaluechanged',
+					event => this.onHeartRateChanged_(event));
+				return characteristic.startNotifications();
+			}
+
+			start() {
+				// console.log("start...");
+				this.resetAverage_();
+				let options = {
+					filters: [{
+						services: [this.SERVICE_ID]
+						//namePrefix: 'Polar H7'
+					}]
+				};
+				navigator.bluetooth.requestDevice(options)
+					.then(device => {
+						console.log("ret connect", device);
+
+						if (this.deviceId_ == "a") {
+							console.warn('set dev feedback');
+							device_a.innerText = device.name;
+						}else{
+							console.warn('set dev feedback');
+							device_b.innerText = device.name;							
+						}
+
+						return device.gatt.connect();
+					})
+					.then(server => {
+						console.log("ret getPrimaryService");
+						return server.getPrimaryService(this.SERVICE_ID);
+					})
+					.then(service => {
+						console.log("ret getCharacteristic");
+						return service.getCharacteristic(this.CHARACTERISTIC_ID);
+					})
+					.then(characteristic => this.handleCharacteristic_(characteristic))
+					.catch(error => {
+						//this will fire if the user cancels.
+						console.error('Error: ' + error);
+						console.log("retstore btn: " + this.deviceId_)
+						if (this.deviceId_ == "a") {
+							connectBtn_A.style.display = "";
+						}else{
+							connectBtn_B.style.display = "";
+						}
+						
+					});
+			}
+
+
+			graph(canvasId, lineColor, lineWidth, scale) {
+				// console.log( this.data );
+
+				let player_age = 45;
+				var nml_data = [];
+				let nml = 0;
+
+				//for (let i = 0; i < this.data.length; i++) {
+				for (let i = this.data.length; i > 0; i--) {
+
+					const max_hr = (220 - player_age);
+					nml = (this.data[i] / max_hr); // 0-1
+
+					// if( scale < 0 ){
+					// 	nml = 1 - nml;
+					// }
+
+					nml_data.push(nml);
+				};
+
+
+				if (isNaN(nml)) {
+					nml = 0;
+				}
+
+
+				let zone = 1;
+				if (nml > 0.9) {
+					zone = 5;
+				} else if (nml > 0.8) {
+					zone = 4;
+				} else if (nml > 0.7) {
+					zone = 3;
+				} else if (nml > 0.6) {
+					zone = 2;
+				}
+
+				let zone_fmt = zone.toFixed(2);
+				let nml_fmt = (nml * 100).toFixed(2);
+
+				this.zoneElement_.innerText = `Zone ${zone_fmt} / ${nml_fmt}%`;
+
+				this.healthScore = this.healthScore + nml;
+				this.timerScore = this.timerScore + 1.0;
+
+				this.healthBarDbgElement_.innerText = `${this.healthScore.toFixed(2)} / ${this.timerScore}`;
+
+				drawLineGraph(canvasId, lineColor, lineWidth, nml_data);
+
+			}
+
+
+		}
+
+	</script>
+</body>
+
+</html>
